@@ -12,9 +12,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/use-toast";
 
 interface SicknessFormData {
+  patientName: string;
   age: string;
   gender: string;
-  symptoms: string;
+  symptoms: string[];
   duration: string;
   previousHistory: boolean;
   diabetes: boolean;
@@ -23,6 +24,24 @@ interface SicknessFormData {
   alcoholConsumption: boolean;
 }
 
+const symptomOptions = [
+  { id: "fever", label: "Fever" },
+  { id: "cough", label: "Cough" },
+  { id: "fatigue", label: "Fatigue" },
+  { id: "headache", label: "Headache" },
+  { id: "nausea", label: "Nausea" },
+  { id: "vomiting", label: "Vomiting" },
+  { id: "dizziness", label: "Dizziness" },
+  { id: "chest-pain", label: "Chest Pain" },
+  { id: "shortness-of-breath", label: "Shortness of Breath" },
+  { id: "abdominal-pain", label: "Abdominal Pain" },
+  { id: "joint-pain", label: "Joint Pain" },
+  { id: "muscle-pain", label: "Muscle Pain" },
+  { id: "rash", label: "Skin Rash" },
+  { id: "sore-throat", label: "Sore Throat" },
+  { id: "runny-nose", label: "Runny Nose" },
+];
+
 const SicknessPrediction = () => {
   const [result, setResult] = useState<string | null>(null);
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high' | null>(null);
@@ -30,9 +49,10 @@ const SicknessPrediction = () => {
   
   const form = useForm<SicknessFormData>({
     defaultValues: {
+      patientName: '',
       age: '',
       gender: '',
-      symptoms: '',
+      symptoms: [],
       duration: '',
       previousHistory: false,
       diabetes: false,
@@ -54,23 +74,26 @@ const SicknessPrediction = () => {
       let predictedIllness = "Unknown";
       let risk: 'low' | 'medium' | 'high' = 'low';
       
-      const symptomsLower = data.symptoms.toLowerCase();
+      const symptoms = data.symptoms;
       
-      if (symptomsLower.includes("fever") && symptomsLower.includes("cough")) {
+      if (symptoms.includes("fever") && symptoms.includes("cough")) {
         predictedIllness = "Common Cold or Flu";
         risk = 'low';
-      } else if (symptomsLower.includes("headache") && symptomsLower.includes("nausea")) {
+      } else if (symptoms.includes("headache") && symptoms.includes("nausea")) {
         predictedIllness = "Migraine";
         risk = 'medium';
-      } else if (symptomsLower.includes("chest") && symptomsLower.includes("pain")) {
+      } else if (symptoms.includes("chest-pain") && symptoms.includes("shortness-of-breath")) {
         predictedIllness = "Potential Cardiac Issue";
         risk = 'high';
-      } else if (symptomsLower.includes("fatigue") && data.diabetes) {
+      } else if (symptoms.includes("fatigue") && data.diabetes) {
         predictedIllness = "Diabetes Complication";
         risk = 'medium';
-      } else if (symptomsLower.includes("breath") || symptomsLower.includes("breathing")) {
+      } else if (symptoms.includes("shortness-of-breath")) {
         predictedIllness = "Respiratory Condition";
         risk = 'medium';
+      } else if (symptoms.length > 0) {
+        predictedIllness = "General Malaise";
+        risk = 'low';
       }
       
       // Additional risk factors can increase the risk level
@@ -114,6 +137,20 @@ const SicknessPrediction = () => {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="patientName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Patient Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter patient's name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -122,7 +159,7 @@ const SicknessPrediction = () => {
                           <FormItem>
                             <FormLabel>Age</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter your age" {...field} />
+                              <Input placeholder="Enter age" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -159,16 +196,47 @@ const SicknessPrediction = () => {
                     <FormField
                       control={form.control}
                       name="symptoms"
-                      render={({ field }) => (
+                      render={() => (
                         <FormItem>
-                          <FormLabel>Symptoms</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe your symptoms in detail (fever, headache, fatigue, etc.)" 
-                              className="min-h-[100px]"
-                              {...field} 
-                            />
-                          </FormControl>
+                          <div className="mb-4">
+                            <FormLabel>Symptoms</FormLabel>
+                            <p className="text-sm text-muted-foreground">Select all that apply</p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                            {symptomOptions.map((symptom) => (
+                              <FormField
+                                key={symptom.id}
+                                control={form.control}
+                                name="symptoms"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={symptom.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(symptom.id)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, symptom.id])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value) => value !== symptom.id
+                                                  )
+                                                )
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal">
+                                        {symptom.label}
+                                      </FormLabel>
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            ))}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
