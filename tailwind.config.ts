@@ -64,6 +64,7 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				medical: {
+					50: '#f0f8ff',  // Adding the missing medical-50 color (light blue/azure)
 					100: '#e6f2ff', // Lightest blue
 					200: '#b3d9ff', // Light blue
 					300: '#80bfff', // Medium-light blue
